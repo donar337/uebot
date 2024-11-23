@@ -7,10 +7,8 @@ from aiogram.client.bot import DefaultBotProperties
 
 from Spam_clf.spam_classification import ModelReducer
 
-# Укажите токен вашего бота
-BOT_TOKEN = "ХУЙ_СОСИТЕ"
+from settings import BOT_TOKEN
 
-# Укажите имя стикерпакета (например, "FunnyStickers")
 TARGET_STICKERS_NAMES = {"nefory842", "vagodrochKKX_by_fStikBot"}
 
 FORBIDDEN = {"AgADLFoAAqx_EUo"}
@@ -18,6 +16,8 @@ FORBIDDEN = {"AgADLFoAAqx_EUo"}
 Z_COOL_STICKER = "AgADaU4AAkxqAAFI"
 
 SPAM_MODEL = ModelReducer()
+
+SAVVA_AHUEL = False
 
 
 async def start_handler(message: Message):
@@ -51,11 +51,13 @@ async def sticker_handler(message: Message):
 
 async def spam_handler(message: Message):
     """
-        Обработчик стикеров.
-        Удаляет сообщения, если это Саввин блядский стикер.
+        Обработчик текста.
+        Удаляет сообщения, если это спам.
     """
+    if not SAVVA_AHUEL or not message.from_user.username == "s3drmn":
+        return
     try:
-        if SPAM_MODEL.spam_or_not(message.text) == 1:
+        if int(SPAM_MODEL.spam_or_not(message.text)) == 1:
             try:
                 await message.delete()
                 print(f"{message.from_user.username} насрал: {message.text}")
@@ -66,7 +68,6 @@ async def spam_handler(message: Message):
 
 
 async def main():
-    # Инициализация бота с использованием DefaultBotProperties
     bot = Bot(
         token=BOT_TOKEN,
         session=AiohttpSession(),
@@ -74,12 +75,10 @@ async def main():
     )
     dp = Dispatcher()
 
-    # Регистрация хэндлеров
     dp.message.register(start_handler, Command("start"))
     dp.message.register(sticker_handler, F.content_type == "sticker")
     dp.message.register(spam_handler, F.content_type == "text")
 
-    # Запуск polling
     try:
         await dp.start_polling(bot)
     finally:
