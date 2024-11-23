@@ -1,0 +1,32 @@
+# ИГНОРИРУЕМ СИСТЕМНЫЕ ФАЙЛЫ
+.DS_Store
+Thumbs.db
+
+# ФАЙЛЫ Pycharm
+.idea/
+
+# ВИРТУАЛЬНОЕ ОКРУЖЕНИЕ
+.venv/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# ФАЙЛЫ ЛОГОВ
+*.log
+
+# СИСТЕМНЫЕ И КОНФИГУРАЦИОННЫЕ ФАЙЛЫ
+*.swp
+*.swo
+.env
+.env.*
+
+# ФАЙЛЫ БАЗ ДАННЫХ
+*.sqlite3
+*.db
+
+# ФАЙЛЫ КЭША
+.cache/
+*.egg-info/
+dist/
+build/
