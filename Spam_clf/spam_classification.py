@@ -1,58 +1,68 @@
-from string import punctuation
-import nltk
-from joblib import load
-from nltk.tokenize import word_tokenize
+import base64
+import json
+import uuid
+
+import requests
 
 
 class ModelReducer:
     # Инициализация модели и векторайзера
     def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.punctuation = list(punctuation)
-            self.model_spam = load('Spam_clf/spam_clf.joblib')
-            self.vectorizer = load('Spam_clf/vectorizer.joblib')
-            self.lemmatizer = nltk.WordNetLemmatizer()
-            self.initialized = True
+        self.client_id = '0f02ee18-f159-45b6-a20e-963bf257bdcd'
+        self.client_secret = 'MGYwMmVlMTgtZjE1OS00NWI2LWEyMGUtOTYzYmYyNTdiZGNkOjI2ZmMwZmZmLWFlNTItNDZhZC1iNGUyLTMzYWM2MTk3ZjY4Yw=='
+        self.token_url = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
+        self.api_url = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions'
+        self.access_token = self._get_token()
 
-    # Принимает на вход текстовую строку
-    # Возвращает метку класса спам или нет, где
-    # 1 это спам
-    # 0 это нет спам
-    def spam_or_not(self, s):
-        # Нормализуем строку
-        s_norm = self._normalize_text(s)
+    def _get_token(self) -> str:
+        request_id = str(uuid.uuid4())
+        token_data = {'scope': 'GIGACHAT_API_PERS'}
+        # credentials = base64.b64encode(f'{self.client_id}:{self.client_secret}'.encode()).decode()
+        token_headers = {
+            'Authorization': f'Basic {self.client_secret}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'RqUID': request_id
+        }
+        response = requests.post(self.token_url, headers=token_headers, data=token_data, verify=False)
+        response.raise_for_status()
+        return response.json()['access_token']
 
-        # Получаем вектор строки
-        vector = self.vectorizer.transform([s_norm])
+    def spam_or_not(self, s: str, temperature=1, max_tokens=512) -> str:
+        
+        prompt = f'Представь, что ты классификатор спама, негативных сообщений, мата и флуда. Если сообщение плохое ответь 1, если хорошее 0, от себя ничего не пиши. Если видишь мат сразу отсылай 1. Сообщение которое нужно проверить: {s}'
 
-        res = (self.model_spam.predict_proba(vector)[:, 1] > 0.5).astype(int)
-        return res[0]
+        payload = json.dumps({
+            'model': 'GigaChat',
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': f'{prompt}'
+                }
+            ],
+            'temperature': temperature,
+            'top_p': 0.1,
+            'n': 1,
+            'stream': False,
+            'max_tokens': max_tokens,
+            'repetition_penalty': 1,
+            'update_interval': 0
+        })
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.access_token}'
+        }
 
-    # Функция принимает на вход текстовую строку.
-    # Возвращает нормализованную строку
-    def _normalize_text(self, s):
-        # Токенизация
-        tokens = word_tokenize(s)
-        # Удаляем пунктуацию
-        tokens_without_punct = [i for i in tokens if i not in punctuation]
-        low_tokens = [i.lower() for i in tokens_without_punct]
-        # удаляем стоп-слова из нашего текста
-        stopwords = nltk.corpus.stopwords.words('russian')
-        words_without_stop = [i for i in low_tokens if i not in stopwords]
-        # Лемматизация
-        lemms = [self.lemmatizer.lemmatize(word)
-                 for word in words_without_stop]
-        # Вывод значения в строке
-        total = ''
-        for el in lemms:
-            total += el
-            total += ' '
-        return total
+        response = requests.post(self.api_url, headers=headers, data=payload, verify=False)
+        response.raise_for_status()
+
+        content = response.json()['choices'][0]['message']['content']
+        if len(content) > 1:
+            content = '1'
+        return content
 
 
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
 
-# model = ModelReducer()
-# print(model.spam_or_not(s='строка'))
+model = ModelReducer()
+print(model.spam_or_not(s='строка'))
