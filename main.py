@@ -5,19 +5,12 @@ from aiogram.filters import Command
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.bot import DefaultBotProperties
 
-from Spam_clf.spam_classification import ModelReducer
+from spam_clf.spam_classification import ModelReducer
 
-from settings import BOT_TOKEN
-
-TARGET_STICKERS_NAMES = {"nefory842", "vagodrochKKX_by_fStikBot"}
-
-FORBIDDEN = {"AgADLFoAAqx_EUo"}
-
-Z_COOL_STICKER = "AgADaU4AAkxqAAFI"
+from utils.deletion import delayed_delete
+from settings import *
 
 SPAM_MODEL = ModelReducer()
-
-SAVVA_AHUEL = False
 
 
 async def start_handler(message: Message):
@@ -54,15 +47,12 @@ async def spam_handler(message: Message):
         Обработчик текста.
         Удаляет сообщения, если это спам.
     """
-    if not SAVVA_AHUEL or not message.from_user.username == "s3drmn":
-        return
+    # if not SAVVA_AHUEL or not message.from_user.username == "s3drmn":
+    #     return
     try:
         if int(SPAM_MODEL.spam_or_not(message.text)) == 1:
-            try:
-                await message.delete()
-                print(f"{message.from_user.username} насрал: {message.text}")
-            except Exception as e:
-                print(f"Ошибка при удалении сообщения: {e}")
+            reply = await message.reply(f"⏱️{DELETION_DELAY}💣")
+            asyncio.create_task(delayed_delete(message, reply, DELETION_DELAY))
     except Exception as e:
         print(f"Макс - говножуй, {e}")
 
@@ -80,6 +70,7 @@ async def main():
     dp.message.register(spam_handler, F.content_type == "text")
 
     try:
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()

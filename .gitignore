@@ -3,7 +3,7 @@
 Thumbs.db
 
 # ИГНОРИРОВАТЬ ФАЙЛ settings.py
-settings.py
+config.py
 
 # ФАЙЛЫ Pycharm
 .idea/
